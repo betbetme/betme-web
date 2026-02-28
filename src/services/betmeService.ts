@@ -454,6 +454,14 @@ export function createPlatformMarket(actorId: string, input: CreatePlatformMarke
   if (actor.role !== 'admin') throw new Error('Only admin can create templates')
   const pre = getDb().preMatchInfos.find((item) => item.id === input.preMatchInfoId)
   if (!pre) throw new Error('Pre-match info not found')
+  const duplicateTemplate = getDb().platformMarkets.some(
+    (item) =>
+      item.status === 'template' &&
+      item.matchInfo.homeTeam === pre.homeTeam &&
+      item.matchInfo.awayTeam === pre.awayTeam &&
+      item.matchInfo.startTime === pre.startTime,
+  )
+  if (duplicateTemplate) throw new Error('Template for this match already exists')
   const template: PlatformMarket = {
     id: generateId('tpl'),
     matchInfo: {
@@ -480,6 +488,13 @@ export function activatePlatformMarket(agentId: string, templateId: string) {
   if (agent.role !== 'agent') throw new Error('Only agent can activate market')
   const template = requireTemplate(templateId)
   if (template.status !== 'template') throw new Error('Template is not available')
+  const hasActiveTemplate = getDb().matches.some(
+    (item) =>
+      item.agentId === agentId &&
+      item.templateId === templateId &&
+      ['draft', 'open', 'locked'].includes(item.status),
+  )
+  if (hasActiveTemplate) throw new Error('This template is already activated by current agent')
   if (agent.balance < template.poolRequirement) throw new Error('Insufficient agent balance')
   const pre = getDb().preMatchInfos.find(
     (item) =>

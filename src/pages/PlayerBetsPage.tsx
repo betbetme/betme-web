@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { X } from 'lucide-react'
 import { getBetAmountOptions, getMatchById, placeBetsAtomic } from '../services/betmeService'
 import { getCurrentUser } from '../services/authService'
 import {
@@ -71,8 +72,8 @@ export function PlayerBetsPage() {
   }
 
   return (
-    <section className="space-y-4">
-      <h1 className="ui-title text-2xl font-semibold">{t('playerBets.title')}</h1>
+    <section className="space-y-5">
+      <h1 className="ui-title text-[28px] font-semibold">{t('playerBets.title')}</h1>
       <p className="ui-muted text-sm">{t('playerBets.hint')}</p>
       {notice ? <Toast variant={notice.variant}>{notice.text}</Toast> : null}
 
@@ -101,16 +102,16 @@ export function PlayerBetsPage() {
                     </p>
                     <p className="ui-muted text-xs">
                       {t('playerBets.odds')}:{' '}
-                      {(item.selection === 'home_win'
+                      <span className="ui-number">{(item.selection === 'home_win'
                         ? match.odds.homeWin
                         : item.selection === 'draw'
                           ? match.odds.draw
                           : match.odds.awayWin
-                      ).toFixed(2)}
+                      ).toFixed(2)}</span>
                     </p>
                     <p className="ui-muted text-xs">
                       {t('playerBets.potentialWin')}:{' '}
-                      {item.amount
+                      <span className="ui-number font-semibold text-[var(--success)]">{item.amount
                         ? formatMoneyU(
                             item.amount *
                               (item.selection === 'home_win'
@@ -119,25 +120,26 @@ export function PlayerBetsPage() {
                                   ? match.odds.draw
                                   : match.odds.awayWin),
                           )
-                        : '-'}
+                        : '-'}</span>
                     </p>
                     {!isOpen ? (
-                      <p className="mt-1 text-xs text-amber-300">
+                      <p className="mt-1 text-xs text-[var(--danger)]">
                         {t('playerBets.lockedWarning')}
                       </p>
                     ) : null}
                   </div>
                   <Button
                     type="button"
-                    variant="danger"
-                    className="px-2 py-1 text-xs"
+                    variant="neutral"
+                    className="h-8 min-h-8 w-8 border-[color:var(--border)] p-0 text-[var(--text-muted)]"
                     onClick={() => removeBetSlipItem(item.matchId)}
+                    aria-label={t('playerBets.remove')}
                   >
-                    {t('playerBets.remove')}
+                    <X size={14} />
                   </Button>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {betAmounts.map((amount) => (
                     <Button
                       key={amount}
@@ -145,6 +147,7 @@ export function PlayerBetsPage() {
                       variant={item.amount === amount ? 'primary' : 'neutral'}
                       onClick={() => setBetSlipAmount(item.matchId, amount)}
                       disabled={!isOpen}
+                      className="min-w-20"
                     >
                       {amount}U
                     </Button>
@@ -156,19 +159,19 @@ export function PlayerBetsPage() {
         </div>
       )}
 
-      <Card className="space-y-2">
+      <Card className="sticky bottom-20 z-20 space-y-3">
         <p className="ui-muted text-sm">
-          {t('playerBets.total')}: {formatMoneyU(totalAmount)}
+          {t('playerBets.total')}: <span className="ui-number font-semibold text-[var(--danger)]">{formatMoneyU(totalAmount)}</span>
         </p>
         <p className="ui-muted text-sm">
-          {t('app.balance')}: {formatMoneyU(currentUser.balance)}
+          {t('app.balance')}: <span className="ui-number">{formatMoneyU(currentUser.balance)}</span>
         </p>
-        {disabledReason ? <p className="text-xs text-amber-300">{disabledReason}</p> : null}
+        {disabledReason ? <p className="text-xs text-[var(--danger)]">{disabledReason}</p> : null}
         <div className="flex gap-2">
-          <Button type="button" variant="neutral" onClick={() => clearBetSlip()}>
+          <Button type="button" variant="neutral" onClick={() => clearBetSlip()} className="flex-1">
             {t('playerBets.clear')}
           </Button>
-          <Button type="button" variant="success" onClick={onConfirm} disabled={disabled}>
+          <Button type="button" variant="primary" onClick={onConfirm} disabled={disabled} className="flex-1 text-base">
             {t('playerBets.confirm')}
           </Button>
         </div>

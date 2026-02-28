@@ -18,6 +18,7 @@ import { Button } from '../shared/ui/Button'
 import { TeamAvatar } from '../shared/ui/TeamAvatar'
 import { RiskBadge } from '../shared/ui/RiskBadge'
 import { Toast } from '../shared/ui/Toast'
+import { CountdownText } from '../shared/ui/CountdownText'
 import { formatMoneyU } from '../shared/formatters/money'
 import { localizeTeamName } from '../shared/i18n/teamNames'
 
@@ -35,7 +36,7 @@ export function MatchDetailPage() {
     return (
       <Card className="max-w-xl">
         <p className="ui-muted text-sm">{t('match.notFound')}</p>
-        <Link to="/matches" className="mt-4 inline-block text-sm text-blue-300">
+        <Link to="/matches" className="mt-4 inline-block text-sm text-[var(--primary)]">
           {t('nav.backToMatches')}
         </Link>
       </Card>
@@ -52,6 +53,8 @@ export function MatchDetailPage() {
   const isMatchOwnerAgent =
     currentUser.role === 'agent' && currentUser.id === match.agentId
   const teamName = (value: string) => localizeTeamName(value, i18n.resolvedLanguage)
+  const moneyToneClass = (value: number) =>
+    value < 0 ? 'text-[var(--danger)]' : 'text-[var(--success)]'
 
   useEffect(() => {
     if (!notice) {
@@ -136,7 +139,7 @@ export function MatchDetailPage() {
   return (
     <Card className="mx-auto w-full max-w-xl rounded-2xl p-6">
       <header className="mb-4">
-        <Link to="/matches" className="text-sm text-blue-300">
+        <Link to="/matches" className="text-sm text-[var(--primary)]">
           {t('nav.backToMatches')}
         </Link>
       </header>
@@ -152,7 +155,7 @@ export function MatchDetailPage() {
               {new Date(match.startTime).toLocaleString(i18n.resolvedLanguage)}
             </p>
             <p className="ui-muted mt-1 text-xs">
-              {t('match.lockCountdown')}: {snapshot.lockCountdown.label}
+              {t('match.lockCountdown')}: <CountdownText targetTime={match.startTime} />
             </p>
           </div>
           <div className="flex items-center justify-end gap-2">
@@ -160,9 +163,9 @@ export function MatchDetailPage() {
             <TeamAvatar teamName={teamName(snapshot.teams.awayTeam)} logoUrl={snapshot.logos.awayLogoUrl} />
           </div>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+        <div className="h-2 overflow-hidden rounded-full bg-[color:var(--surface-muted)]">
           <div
-            className="h-full rounded-full bg-blue-500"
+            className="h-full rounded-full bg-[color:var(--success)]"
             style={{
               width: `${Math.max(
                 100 - (snapshot.lockCountdown.remainingMinutes / 1440) * 100,
@@ -179,37 +182,37 @@ export function MatchDetailPage() {
 
       {notice ? <Toast variant={notice.variant}>{notice.text}</Toast> : null}
 
-      <section className="mt-4 space-y-2 rounded-xl border border-slate-700 p-4">
+      <section className="mt-4 space-y-2 rounded-xl border border-[color:var(--border)] p-4">
         <h2 className="ui-title text-sm font-semibold">{t('match.riskAndPool')}</h2>
         <p className="ui-muted text-xs">
-          {t('match.maxRisk')}: {formatMoneyU(snapshot.maxRisk)}
+          {t('match.maxRisk')}: <span className="ui-number font-semibold text-[var(--danger)]">{formatMoneyU(snapshot.maxRisk)}</span>
         </p>
         <p className="ui-muted text-xs">
-          {t('match.releasedPool')}: {formatMoneyU(snapshot.releasedPool)}
+          {t('match.releasedPool')}: <span className="ui-number">{formatMoneyU(snapshot.releasedPool)}</span>
         </p>
         <p className="ui-muted text-xs">
-          {t('match.totalPool')}: {formatMoneyU(snapshot.poolTotal)}
+          {t('match.totalPool')}: <span className="ui-number">{formatMoneyU(snapshot.poolTotal)}</span>
         </p>
-        <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+        <div className="h-2 overflow-hidden rounded-full bg-[color:var(--surface-muted)]">
           <div
-            className="h-full rounded-full bg-emerald-500"
+            className="h-full rounded-full bg-[color:var(--success)]"
             style={{ width: `${snapshot.releasedRatio * 100}%` }}
           />
         </div>
       </section>
 
-      <section className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-slate-700 p-4">
+      <section className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-[color:var(--border)] p-4">
         <div>
           <p className="ui-muted text-xs">{t('match.totalAmount')}</p>
-          <p className="ui-title text-sm font-semibold">{formatMoneyU(snapshot.totalBetAmount)}</p>
+          <p className="ui-title ui-number text-sm font-semibold">{formatMoneyU(snapshot.totalBetAmount)}</p>
         </div>
         <div>
           <p className="ui-muted text-xs">{t('match.feeIncome')}</p>
-          <p className="ui-title text-sm font-semibold">{formatMoneyU(snapshot.feeIncome)}</p>
+          <p className={`ui-title ui-number text-sm font-semibold ${moneyToneClass(snapshot.feeIncome)}`}>{formatMoneyU(snapshot.feeIncome)}</p>
         </div>
       </section>
 
-      <section className="mt-4 space-y-3 rounded-xl border border-slate-700 p-4">
+      <section className="mt-4 space-y-3 rounded-xl border border-[color:var(--border)] p-4">
         <h2 className="ui-title text-sm font-semibold">{t('match.distribution')}</h2>
         {snapshot.outcomeProjection.map((item) => {
           const percent = item.percent.toFixed(2)
@@ -223,16 +226,16 @@ export function MatchDetailPage() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="ui-title text-sm font-semibold">{formatMoneyU(item.amount)}</p>
-                  <p className="text-xs text-blue-300">{percent}%</p>
+                  <p className="ui-title ui-number text-sm font-semibold">{formatMoneyU(item.amount)}</p>
+                  <p className="text-xs text-[var(--primary)]">{percent}%</p>
                 </div>
               </div>
               <p className="ui-muted text-xs">
-                {t('match.projectedRevenue')}: {formatMoneyU(item.projectedRevenue)}
+                {t('match.projectedRevenue')}: <span className={`ui-number font-semibold ${moneyToneClass(item.projectedRevenue)}`}>{formatMoneyU(item.projectedRevenue)}</span>
               </p>
-              <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+              <div className="h-2 overflow-hidden rounded-full bg-[color:var(--surface-muted)]">
                 <div
-                  className="h-full rounded-full bg-blue-500"
+                  className="h-full rounded-full bg-[color:var(--primary)]"
                   style={{ width: `${percent}%` }}
                 />
               </div>
@@ -242,24 +245,24 @@ export function MatchDetailPage() {
       </section>
 
       {showPlayerHint ? (
-        <section className="mt-6 space-y-3 rounded-xl border border-slate-700 p-4">
+        <section className="mt-6 space-y-3 rounded-xl border border-[color:var(--border)] p-4">
           <h2 className="ui-title text-sm font-semibold">{t('match.placeBet')}</h2>
           <p className="ui-muted text-sm">{t('match.betHint')}</p>
-          <Link to="/matches" className="text-sm text-blue-300">
+          <Link to="/matches" className="text-sm text-[var(--primary)]">
             {t('match.goSelect')}
           </Link>
         </section>
       ) : null}
 
       {isMatchOwnerAgent ? (
-        <section className="mt-6 space-y-3 rounded-xl border border-slate-700 p-4">
+        <section className="mt-6 space-y-3 rounded-xl border border-[color:var(--border)] p-4">
           <h2 className="ui-title text-sm font-semibold">{t('match.agentControls')}</h2>
           {match.status === 'open' ? (
             <div className="flex flex-wrap gap-2">
               <Button type="button" onClick={pauseAction} variant="neutral">
                 {t('match.pauseMatch')}
               </Button>
-              <Button type="button" onClick={cancelAction} variant="danger">
+              <Button type="button" onClick={cancelAction} variant="neutral">
                 {t('match.cancelMatch')}
               </Button>
             </div>
@@ -269,7 +272,7 @@ export function MatchDetailPage() {
               <Button type="button" onClick={resumeAction} variant="neutral">
                 {t('match.resumeMatch')}
               </Button>
-              <Button type="button" onClick={cancelAction} variant="danger">
+              <Button type="button" onClick={cancelAction} variant="neutral">
                 {t('match.cancelMatch')}
               </Button>
             </div>
@@ -278,7 +281,7 @@ export function MatchDetailPage() {
       ) : null}
 
       {currentUser.role === 'admin' ? (
-        <section className="mt-6 space-y-3 rounded-xl border border-slate-700 p-4">
+        <section className="mt-6 space-y-3 rounded-xl border border-[color:var(--border)] p-4">
           <h2 className="ui-title text-sm font-semibold">{t('match.adminControls')}</h2>
           <Button
             type="button"

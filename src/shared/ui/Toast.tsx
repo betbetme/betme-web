@@ -9,9 +9,9 @@ interface ToastProps extends HTMLAttributes<HTMLDivElement> {
 
 export function Toast({ className, variant = 'info', ...props }: ToastProps) {
   const variantClass = {
-    info: 'border-blue-500/30 bg-blue-500/15 text-blue-100',
-    success: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-100',
-    error: 'border-red-500/30 bg-red-500/15 text-red-100',
+    info: 'border-[#8f6bff66] bg-[#8f6bff33] text-[#efeaff]',
+    success: 'border-[#79ff3a66] bg-[#79ff3a2e] text-[#e7ffdb]',
+    error: 'border-[#ff4fcb66] bg-[#ff4fcb33] text-[#ffe8f7]',
   }[variant]
 
   return (

@@ -14,11 +14,13 @@ export function AgentBillsPage() {
   useSyncExternalStore(subscribeStore, getStoreVersion)
   const currentUser = getCurrentUser()
   const bills = getAgentSettlementBills(currentUser.id)
+  const moneyToneClass = (value: number) =>
+    value < 0 ? 'text-[var(--danger)]' : 'text-[var(--success)]'
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="ui-title text-2xl font-semibold">{t('agentBills.title')}</h1>
+        <h1 className="ui-title text-[28px] font-semibold">{t('agentBills.title')}</h1>
         <Link to="/matches">
           <Button type="button" variant="neutral">
             {t('agentBills.back')}
@@ -41,12 +43,12 @@ export function AgentBillsPage() {
                 {new Date(bill.match.startTime).toLocaleString(i18n.resolvedLanguage)}
               </p>
               <p className="ui-muted text-xs">
-                {t('agentBills.feeIncome')}: {formatMoneyU(bill.feeIncome)}
+                {t('agentBills.feeIncome')}: <span className={`ui-number font-semibold ${moneyToneClass(bill.feeIncome)}`}>{formatMoneyU(bill.feeIncome)}</span>
               </p>
               <p className="ui-muted text-xs">
-                {t('agentBills.poolIncome')}: {formatMoneyU(bill.poolIncome)}
+                {t('agentBills.poolIncome')}: <span className={`ui-number font-semibold ${moneyToneClass(bill.poolIncome)}`}>{formatMoneyU(bill.poolIncome)}</span>
               </p>
-              <p className="ui-title text-xs font-semibold">
+              <p className={`ui-title ui-number text-sm font-semibold ${moneyToneClass(bill.netIncome)}`}>
                 {t('agentBills.netIncome')}: {formatMoneyU(bill.netIncome)}
               </p>
             </Card>

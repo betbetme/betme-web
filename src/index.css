@@ -3,16 +3,17 @@
 :root {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
     Helvetica, Arial, sans-serif;
-  --bg: #0b1020;
-  --surface: #111827;
-  --surface-muted: #0f172a;
-  --border: #1f2937;
-  --text: #e5e7eb;
-  --text-muted: #94a3b8;
-  --primary: #3b82f6;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
+  --bg: #140a2b;
+  --surface: #1b1038;
+  --surface-muted: #24124a;
+  --border: #3a2a66;
+  --text: #f3f2ff;
+  --text-muted: #a79bc8;
+  --primary: #8f6bff;
+  --success: #79ff3a;
+  --warning: #ffc857;
+  --danger: #ff4fcb;
+  --action: #00b140;
 }
 
 * {
@@ -23,7 +24,9 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: var(--bg);
+  background:
+    radial-gradient(1200px 600px at 50% -200px, #2a1858 0%, transparent 70%),
+    var(--bg);
   color: var(--text);
 }
 
@@ -33,13 +36,16 @@ body {
 
 @layer components {
   .ui-card {
-    @apply rounded-xl border p-4 shadow-sm;
+    @apply border p-5;
+    border-radius: 18px;
     background: var(--surface);
     border-color: var(--border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
   }
 
   .ui-card-muted {
-    @apply rounded-xl border p-4;
+    @apply border p-5;
+    border-radius: 18px;
     background: var(--surface-muted);
     border-color: var(--border);
   }
@@ -52,9 +58,18 @@ body {
     color: var(--text-muted);
   }
 
+  .ui-number {
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+    letter-spacing: 0.01em;
+    color: var(--text);
+    font-weight: 600;
+  }
+
   .ui-select,
   .ui-input {
-    @apply rounded-lg border px-3 py-2 text-sm outline-none transition;
+    @apply rounded-xl border px-3 py-2.5 text-sm outline-none transition;
+    min-height: 44px;
     color: var(--text);
     background: var(--surface-muted);
     border-color: var(--border);
@@ -66,29 +81,48 @@ body {
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 30%, transparent);
   }
 
+  .ui-select,
+  select.ui-input {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 40px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23A79BC8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: calc(100% - 16px) 50%;
+    background-size: 12px 8px;
+  }
+
   .ui-btn {
     @apply inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .ui-btn-primary {
-    @apply inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-50;
-    background: var(--primary);
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50;
+    min-height: 44px;
+    background: color-mix(in srgb, var(--action) 92%, black);
+    border: 1px solid color-mix(in srgb, var(--action) 70%, white);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--action) 25%, transparent);
   }
 
   .ui-btn-neutral {
-    @apply inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+    min-height: 44px;
     color: var(--text);
     background: var(--surface-muted);
     border: 1px solid var(--border);
   }
 
   .ui-btn-success {
-    @apply inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium text-black transition disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-black transition disabled:cursor-not-allowed disabled:opacity-50;
+    min-height: 44px;
     background: var(--success);
+    border: 1px solid color-mix(in srgb, var(--success) 75%, white);
   }
 
   .ui-btn-danger {
-    @apply inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-50;
-    background: color-mix(in srgb, var(--danger) 86%, black);
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50;
+    min-height: 44px;
+    background: color-mix(in srgb, var(--danger) 70%, #260822);
+    border: 1px solid color-mix(in srgb, var(--danger) 50%, white);
   }
 }

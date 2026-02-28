@@ -17,6 +17,8 @@ export function PlayerMinePage() {
 
   const pending = records.filter((item) => item.status === 'pending')
   const settled = records.filter((item) => item.status !== 'pending')
+  const moneyToneClass = (value: number) =>
+    value < 0 ? 'text-[var(--danger)]' : 'text-[var(--success)]'
 
   return (
     <section className="space-y-4">
@@ -38,13 +40,13 @@ export function PlayerMinePage() {
                 </p>
                 <p className="ui-muted text-xs">{t(`match.selection.${bet.selection}`)}</p>
                 <p className="ui-muted text-xs">
-                  {t('mine.betAmount')}: {formatMoneyU(bet.amount)}
+                  {t('mine.betAmount')}: <span className="ui-number font-semibold text-[var(--danger)]">{formatMoneyU(bet.amount)}</span>
                 </p>
                 <p className="ui-muted text-xs">
-                  {t('mine.betOdds')}: {bet.oddsSnapshot.toFixed(2)}
+                  {t('mine.betOdds')}: <span className="ui-number">{bet.oddsSnapshot.toFixed(2)}</span>
                 </p>
                 <p className="ui-muted text-xs">
-                  {t('mine.potentialWin')}: {formatMoneyU(bet.netAmount)}
+                  {t('mine.potentialWin')}: <span className="ui-number font-semibold text-[var(--success)]">{formatMoneyU(bet.netAmount)}</span>
                 </p>
                 <Badge>{t('mine.pendingStatus')}</Badge>
               </Card>
@@ -76,15 +78,15 @@ export function PlayerMinePage() {
                 <p className="ui-muted text-xs">{t('mine.finalResult')}: {resultLabel}</p>
                 <div className="flex items-center gap-2 text-xs">
                   {bet.status === 'won' ? (
-                    <CheckCircle2 size={14} className="text-emerald-400" />
+                    <CheckCircle2 size={14} className="text-[var(--success)]" />
                   ) : bet.status === 'lost' ? (
-                    <XCircle size={14} className="text-rose-400" />
+                    <XCircle size={14} className="text-[var(--danger)]" />
                   ) : null}
                   <p className="ui-muted">{t(outcomeKey)}</p>
                 </div>
                 <p className="ui-muted text-xs">
                   {t('mine.pnl')}: {pnl >= 0 ? '+' : ''}
-                  {formatMoneyU(pnl)}
+                  <span className={`ui-number font-semibold ${moneyToneClass(pnl)}`}>{formatMoneyU(pnl)}</span>
                 </p>
               </Card>
             )

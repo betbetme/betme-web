@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import {
   activatePlatformMarket,
+  getVisibleMatches,
   getPlatformMarkets,
 } from '../services/betmeService'
 import { getCurrentUser } from '../services/authService'
@@ -20,13 +21,20 @@ export function AgentCreateMatchPage() {
   const navigate = useNavigate()
   const currentUser = getCurrentUser()
   const templates = getPlatformMarkets().filter((item) => item.status === 'template')
+  const activatedTemplateIds = new Set(
+    getVisibleMatches(currentUser.id)
+      .filter((item) => ['draft', 'open', 'locked'].includes(item.status))
+      .map((item) => item.templateId),
+  )
+  const selectableTemplates = templates.filter((item) => !activatedTemplateIds.has(item.id))
   const [notice, setNotice] = useState<{ text: string; variant: 'success' | 'error' } | null>(null)
-  const [templateId, setTemplateId] = useState(templates[0]?.id ?? '')
+  const [templateId, setTemplateId] = useState(selectableTemplates[0]?.id ?? '')
 
   const selectedTemplate = useMemo(
     () => templates.find((item) => item.id === templateId),
     [templates, templateId],
   )
+  const templateBlocked = selectedTemplate ? activatedTemplateIds.has(selectedTemplate.id) : false
   const teamName = (value: string) => localizeTeamName(value, i18n.resolvedLanguage)
 
   useEffect(() => {
@@ -37,14 +45,19 @@ export function AgentCreateMatchPage() {
     return () => window.clearTimeout(timer)
   }, [notice])
 
-  const reset = () => {
-    setTemplateId(templates[0]?.id ?? '')
-    setNotice(null)
-  }
+  useEffect(() => {
+    if (!selectableTemplates.some((item) => item.id === templateId)) {
+      setTemplateId(selectableTemplates[0]?.id ?? '')
+    }
+  }, [selectableTemplates, templateId])
 
   const createAction = () => {
     if (!templateId) {
       setNotice({ text: t('agentCreateForm.requiredMatch'), variant: 'error' })
+      return
+    }
+    if (templateBlocked) {
+      setNotice({ text: t('agentCreateForm.alreadyActivated'), variant: 'error' })
       return
     }
     try {
@@ -59,8 +72,8 @@ export function AgentCreateMatchPage() {
   }
 
   return (
-    <section className="space-y-4">
-      <h1 className="ui-title text-2xl font-semibold">{t('agentCreateForm.title')}</h1>
+    <section className="space-y-5">
+      <h1 className="ui-title text-[28px] font-semibold">{t('agentCreateForm.title')}</h1>
       {notice ? <Toast variant={notice.variant}>{notice.text}</Toast> : null}
 
       <Card className="space-y-3">
@@ -68,11 +81,15 @@ export function AgentCreateMatchPage() {
           <span className="ui-muted text-xs">{t('agentCreateForm.match')}</span>
           <SelectInput value={templateId} onChange={(event) => setTemplateId(event.target.value)}>
             {templates.map((item) => (
-              <option key={item.id} value={item.id}>
+              <option key={item.id} value={item.id} disabled={activatedTemplateIds.has(item.id)}>
                 {teamName(item.matchInfo.homeTeam)} vs {teamName(item.matchInfo.awayTeam)}
+                {activatedTemplateIds.has(item.id) ? ` ${t('agentCreateForm.activatedLabel')}` : ''}
               </option>
             ))}
           </SelectInput>
+          {selectableTemplates.length === 0 ? (
+            <p className="mt-1 text-xs text-[var(--danger)]">{t('agentCreateForm.noTemplateAvailable')}</p>
+          ) : null}
         </label>
       </Card>
 
@@ -88,13 +105,13 @@ export function AgentCreateMatchPage() {
               {new Date(selectedTemplate.matchInfo.startTime).toLocaleString(i18n.resolvedLanguage)}
             </p>
             <p className="ui-muted text-xs">
-              {t('agentCreateForm.feeSplitMode')}: {selectedTemplate.feeSplitMode}
+              {t('agentCreateForm.feeSplitMode')}: <span className="ui-number">{selectedTemplate.feeSplitMode}</span>
             </p>
             <p className="ui-muted text-xs">
-              {t('agentCreateForm.feeRate')}: {(selectedTemplate.feeRate * 100).toFixed(2)}%
+              {t('agentCreateForm.feeRate')}: <span className="ui-number">{(selectedTemplate.feeRate * 100).toFixed(2)}%</span>
             </p>
             <p className="ui-muted text-xs">
-              {t('agentCreateForm.poolRequirement')}: {formatMoneyU(selectedTemplate.poolRequirement)}
+              {t('agentCreateForm.poolRequirement')}: <span className="ui-number font-semibold text-[var(--danger)]">{formatMoneyU(selectedTemplate.poolRequirement)}</span>
             </p>
             <p className="ui-muted text-xs">
               {t('agentCreateForm.previewRisk', {
@@ -111,10 +128,16 @@ export function AgentCreateMatchPage() {
       </Card>
 
       <div className="flex gap-2">
-        <Button type="button" variant="neutral" onClick={reset}>
-          {t('agentCreateForm.reset')}
+        <Button type="button" variant="neutral" onClick={() => navigate('/matches')} className="flex-1">
+          {t('agentCreateForm.backHome')}
         </Button>
-        <Button type="button" variant="primary" onClick={createAction} disabled={!selectedTemplate}>
+        <Button
+          type="button"
+          variant="primary"
+          onClick={createAction}
+          disabled={!selectedTemplate || templateBlocked}
+          className="flex-1 text-base"
+        >
           {t('agentCreateForm.submit')}
         </Button>
       </div>

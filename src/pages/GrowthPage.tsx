@@ -40,7 +40,7 @@ export function GrowthPage() {
         title={t('growth.comingSoonTooltip')}
       >
         <p className="ui-title text-sm font-semibold">{t('growth.benefitsTitle')}</p>
-        <ul className="space-y-1 text-sm text-slate-400">
+        <ul className="space-y-1 text-sm text-[var(--text-muted)]">
           <li>{isAgent ? t('growth.benefit.agent1') : t('growth.benefit.player1')}</li>
           <li>{isAgent ? t('growth.benefit.agent2') : t('growth.benefit.player2')}</li>
           <li>{isAgent ? t('growth.benefit.agent3') : t('growth.benefit.player3')}</li>

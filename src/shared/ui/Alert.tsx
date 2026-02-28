@@ -9,14 +9,14 @@ interface AlertProps extends HTMLAttributes<HTMLDivElement> {
 
 export function Alert({ className, variant = 'info', ...props }: AlertProps) {
   const variantClass = {
-    info: 'border-blue-500/30 bg-blue-500/10 text-blue-200',
-    success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
-    error: 'border-red-500/30 bg-red-500/10 text-red-200',
+    info: 'border-[#8f6bff55] bg-[#8f6bff22] text-[#d1c4ff]',
+    success: 'border-[#79ff3a66] bg-[#79ff3a22] text-[#b6ff92]',
+    error: 'border-[#ff4fcb66] bg-[#ff4fcb22] text-[#ff9be2]',
   }[variant]
 
   return (
     <div
-      className={cn('rounded-lg border px-3 py-2 text-sm', variantClass, className)}
+      className={cn('rounded-xl border px-3 py-2 text-sm', variantClass, className)}
       {...props}
     />
   )

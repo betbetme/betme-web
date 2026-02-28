@@ -23,6 +23,7 @@ import { Button } from '../shared/ui/Button'
 import { TeamAvatar } from '../shared/ui/TeamAvatar'
 import { RiskBadge } from '../shared/ui/RiskBadge'
 import { Toast } from '../shared/ui/Toast'
+import { CountdownText } from '../shared/ui/CountdownText'
 import { formatMoneyU } from '../shared/formatters/money'
 import { localizeTeamName } from '../shared/i18n/teamNames'
 
@@ -51,6 +52,8 @@ export function HomePage() {
     () => matches.filter((match) => match.status === 'open'),
     [matches],
   )
+  const moneyToneClass = (value: number) =>
+    value < 0 ? 'text-[var(--danger)]' : 'text-[var(--success)]'
 
   useEffect(() => {
     if (!notice) return
@@ -73,22 +76,30 @@ export function HomePage() {
 
   if (currentUser.role === 'agent') {
     return (
-      <section className="space-y-4">
+      <section className="space-y-5">
         {notice ? <Toast variant={notice.variant}>{notice.text}</Toast> : null}
-        <h1 className="ui-title text-2xl font-semibold">{t('home.title')}</h1>
+        <h1 className="ui-title text-[28px] font-semibold">{t('home.title')}</h1>
 
         <Card>
           <h2 className="ui-title text-sm font-semibold">{t('home.summaryTitle')}</h2>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <p className="ui-muted text-xs">{t('agentCreate.netProfit')}: {formatMoneyU(agentStats.netProfit)}</p>
-            <p className="ui-muted text-xs">{t('agentCreate.feeIncome')}: {formatMoneyU(agentStats.feeIncome)}</p>
-            <p className="ui-muted text-xs">{t('agentCreate.poolProfit')}: {formatMoneyU(agentStats.poolProfit)}</p>
-            <p className="ui-muted text-xs">{t('agentCreate.poolLoss')}: {formatMoneyU(agentStats.poolLoss)}</p>
-            <p className="ui-muted text-xs">{t('agentCreate.activeMatches')}: {agentStats.activeMatches}</p>
+            <p className="ui-muted text-xs">
+              {t('agentCreate.netProfit')}: <span className={`ui-number font-semibold ${moneyToneClass(agentStats.netProfit)}`}>{formatMoneyU(agentStats.netProfit)}</span>
+            </p>
+            <p className="ui-muted text-xs">
+              {t('agentCreate.feeIncome')}: <span className={`ui-number font-semibold ${moneyToneClass(agentStats.feeIncome)}`}>{formatMoneyU(agentStats.feeIncome)}</span>
+            </p>
+            <p className="ui-muted text-xs">
+              {t('agentCreate.poolProfit')}: <span className={`ui-number font-semibold ${moneyToneClass(agentStats.poolProfit)}`}>{formatMoneyU(agentStats.poolProfit)}</span>
+            </p>
+            <p className="ui-muted text-xs">
+              {t('agentCreate.poolLoss')}: <span className="ui-number font-semibold text-[var(--danger)]">{formatMoneyU(agentStats.poolLoss)}</span>
+            </p>
+            <p className="ui-muted text-xs">{t('agentCreate.activeMatches')}: <span className="ui-number">{agentStats.activeMatches}</span></p>
           </div>
           <div className="mt-3">
             <Link to="/agent/bills">
-              <Button type="button" variant="neutral" className="w-full">
+              <Button type="button" variant="neutral" className="w-full text-sm font-semibold">
                 {t('agentCreate.goBills')}
               </Button>
             </Link>
@@ -100,7 +111,7 @@ export function HomePage() {
           <p className="ui-muted mt-1 text-xs">{t('home.createMatchHint')}</p>
           <div className="mt-3">
             <Link to="/agent/create/new">
-              <Button type="button" variant="primary" className="w-full py-3">
+              <Button type="button" variant="primary" className="w-full py-3 text-base">
                 {t('home.create')}
               </Button>
             </Link>
@@ -109,7 +120,7 @@ export function HomePage() {
 
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <CircleDot size={16} className="text-blue-300" />
+            <CircleDot size={16} className="text-[var(--primary)]" />
             <h2 className="ui-title text-base font-semibold">{t('home.activeMarkets')}</h2>
           </div>
           {activeAgentMarkets.length === 0 ? (
@@ -138,17 +149,19 @@ export function HomePage() {
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       <Badge>{t(`match.statusLabel.${market.status}`)}</Badge>
                       <Badge variant="primary">
-                        {t('home.lockCountdown')}: {market.lockCountdownLabel}
+                        {t('home.lockCountdown')}: <CountdownText targetTime={market.startTime} />
                       </Badge>
                       <RiskBadge riskLevel={market.riskLevel} label={t(`risk.${market.riskLevel}`)} />
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <p className="ui-muted">
-                        {t('home.totalBet')}: {formatMoneyU(market.totalBetAmount)}
+                        {t('home.totalBet')}: <span className="ui-number font-semibold text-[var(--success)]">{formatMoneyU(market.totalBetAmount)}</span>
                       </p>
                       <p className="ui-muted">
                         {t('home.profitRange')}:{' '}
-                        {`${formatMoneyU(market.maxProfit)} / -${formatMoneyU(market.maxRisk)}`}
+                        <span className="ui-number font-semibold text-[var(--success)]">{formatMoneyU(market.maxProfit)}</span>
+                        <span className="ui-number"> / </span>
+                        <span className="ui-number font-semibold text-[var(--danger)]">-{formatMoneyU(market.maxRisk)}</span>
                       </p>
                     </div>
                   </Link>
@@ -175,8 +188,8 @@ export function HomePage() {
   }
 
   return (
-    <section className="space-y-4">
-      <h1 className="ui-title text-2xl font-semibold">{t('home.title')}</h1>
+    <section className="space-y-5">
+      <h1 className="ui-title text-[28px] font-semibold">{t('home.title')}</h1>
       {notice ? <Toast variant={notice.variant}>{notice.text}</Toast> : null}
       <div className="grid gap-3">
         {openPlayerMatches.length === 0 ? (
@@ -219,10 +232,10 @@ export function HomePage() {
                   type="button"
                   variant={selectedByMatch.get(match.id) === 'home_win' ? 'primary' : 'neutral'}
                   onClick={() => onPlayerSelection(match.id, match.marketId, 'home_win')}
-                  className="h-auto flex-col py-2"
+                  className="h-20 flex-col py-2 text-base"
                 >
                   <span>{`${teamName(snapshotByMatchId.get(match.id)?.teams.homeTeam ?? '')}${t('home.winSuffix')}`}</span>
-                  <span className="text-xs opacity-80">
+                  <span className="ui-number text-xs opacity-80">
                     {t('home.oddsLabel')}: {match.odds.homeWin.toFixed(2)}
                   </span>
                 </Button>
@@ -230,10 +243,10 @@ export function HomePage() {
                   type="button"
                   variant={selectedByMatch.get(match.id) === 'draw' ? 'primary' : 'neutral'}
                   onClick={() => onPlayerSelection(match.id, match.marketId, 'draw')}
-                  className="h-auto flex-col py-2"
+                  className="h-20 flex-col py-2 text-base"
                 >
                   <span>{t('match.selection.draw')}</span>
-                  <span className="text-xs opacity-80">
+                  <span className="ui-number text-xs opacity-80">
                     {t('home.oddsLabel')}: {match.odds.draw.toFixed(2)}
                   </span>
                 </Button>
@@ -241,10 +254,10 @@ export function HomePage() {
                   type="button"
                   variant={selectedByMatch.get(match.id) === 'away_win' ? 'primary' : 'neutral'}
                   onClick={() => onPlayerSelection(match.id, match.marketId, 'away_win')}
-                  className="h-auto flex-col py-2"
+                  className="h-20 flex-col py-2 text-base"
                 >
                   <span>{`${teamName(snapshotByMatchId.get(match.id)?.teams.awayTeam ?? '')}${t('home.winSuffix')}`}</span>
-                  <span className="text-xs opacity-80">
+                  <span className="ui-number text-xs opacity-80">
                     {t('home.oddsLabel')}: {match.odds.awayWin.toFixed(2)}
                   </span>
                 </Button>

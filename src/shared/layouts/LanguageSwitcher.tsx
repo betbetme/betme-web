@@ -5,7 +5,7 @@ export function LanguageSwitcher() {
   const { t, i18n } = useTranslation()
 
   return (
-    <label className="flex items-center gap-2 text-sm text-slate-300">
+    <label className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
       {t('language.label')}
       <SelectInput
         value={i18n.resolvedLanguage}
