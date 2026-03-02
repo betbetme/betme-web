@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react'
 import { cn } from './cn'
 
-type ButtonVariant = 'primary' | 'neutral' | 'success' | 'danger'
+type ButtonVariant = 'primary' | 'neutral' | 'success' | 'danger' | 'selected'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
@@ -17,6 +17,7 @@ export function Button({
     neutral: 'ui-btn-neutral',
     success: 'ui-btn-success',
     danger: 'ui-btn-danger',
+    selected: 'ui-btn-selected',
   }[variant]
 
   return <button className={cn(variantClass, className)} {...props} />

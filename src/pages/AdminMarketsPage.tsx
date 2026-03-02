@@ -1,103 +1,54 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useMemo, useState, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import {
-  createPlatformMarket,
-  getAdminActivatedMarkets,
+  getActiveMarketsForAgent,
   getAdminPlatformStats,
-  getAdminCreatedTemplates,
-  getAdminSettledMarketRecords,
-  getLockedMatchesForAdmin,
-  getPreMatchInfos,
-  removePlatformMarket,
-  resolveMarketsByAdmin,
+  getMatchOperationalSnapshot,
 } from '../services/betmeService'
-import { getCurrentUser } from '../services/authService'
 import { getStoreVersion, subscribeStore } from '../services/dataStore'
 import { Card } from '../shared/ui/Card'
 import { Button } from '../shared/ui/Button'
-import { Toast } from '../shared/ui/Toast'
 import { formatMoneyU } from '../shared/formatters/money'
-import { localizeMatchTitle } from '../shared/i18n/teamNames'
-import type { MatchResult } from '../types/domain'
+import { TeamAvatar } from '../shared/ui/TeamAvatar'
+import { RiskBadge } from '../shared/ui/RiskBadge'
+import { localizeTeamName } from '../shared/i18n/teamNames'
+import { Badge } from '../shared/ui/Badge'
+import { CountdownText } from '../shared/ui/CountdownText'
 
 export function AdminMarketsPage() {
   const { t, i18n } = useTranslation()
   useSyncExternalStore(subscribeStore, getStoreVersion)
-  const currentUser = getCurrentUser()
-  const [selections, setSelections] = useState<Record<string, MatchResult | undefined>>({})
-  const [templateTab, setTemplateTab] = useState<'created' | 'activated' | 'settled'>('created')
-  const preMatches = getPreMatchInfos()
-  const [preMatchInfoId, setPreMatchInfoId] = useState(preMatches[0]?.id ?? '')
-  const [feeSplitMode, setFeeSplitMode] = useState<'55' | '46' | '37'>('55')
-  const [riskLevel, setRiskLevel] = useState<'low' | 'medium' | 'high'>('medium')
-  const [poolRequirement, setPoolRequirement] = useState<500 | 1000 | 2000>(500)
-  const [feeRate, setFeeRate] = useState<2 | 4 | 6>(2)
+  const [selectedAgentId, setSelectedAgentId] = useState('agent-1')
   const stats = getAdminPlatformStats()
-  const createdTemplates = getAdminCreatedTemplates()
-  const activatedMarkets = getAdminActivatedMarkets()
-  const settledRecords = getAdminSettledMarketRecords()
-  const [notice, setNotice] = useState<{ text: string; variant: 'success' | 'error' } | null>(null)
-
-  const lockedMatches = getLockedMatchesForAdmin()
-  const selectedCount = Object.values(selections).filter(Boolean).length
-  const displayTitle = (title: string) => localizeMatchTitle(title, i18n.resolvedLanguage)
-
-  const createTemplateAction = () => {
-    try {
-      createPlatformMarket(currentUser.id, {
-        preMatchInfoId,
-        lockTime: 10,
-        feeSplitMode,
-        feeRate,
-        riskLevel,
-        poolRequirement,
-      })
-      setNotice({ text: t('admin.templateCreated'), variant: 'success' })
-    } catch (error) {
-      setNotice({
-        text: error instanceof Error ? error.message : t('admin.templateCreateFailed'),
-        variant: 'error',
-      })
-    }
-  }
-
-  const removeTemplateAction = (templateId: string) => {
-    try {
-      removePlatformMarket(currentUser.id, templateId)
-      setNotice({ text: t('admin.templateRemoved'), variant: 'success' })
-    } catch (error) {
-      setNotice({
-        text: error instanceof Error ? error.message : t('admin.templateRemoveFailed'),
-        variant: 'error',
-      })
-    }
-  }
-
-  const confirmAction = () => {
-    try {
-      const payload = Object.entries(selections)
-        .filter(([, result]) => Boolean(result))
-        .map(([matchId, result]) => ({ matchId, result: result as MatchResult }))
-      resolveMarketsByAdmin(currentUser.id, payload)
-      setSelections({})
-      setNotice({ text: t('admin.batchResolved'), variant: 'success' })
-    } catch (error) {
-      setNotice({
-        text: error instanceof Error ? error.message : t('admin.batchResolveFailed'),
-        variant: 'error',
-      })
-    }
-  }
+  const options = [
+    { id: 'agent-1', label: t('admin.agentFilter.agent01'), disabled: false },
+    { id: 'agent-2', label: t('admin.agentFilter.agent02'), disabled: true },
+    { id: 'agent-3', label: t('admin.agentFilter.agent03'), disabled: true },
+    { id: 'agent-4', label: t('admin.agentFilter.agent04'), disabled: true },
+  ]
+  const activeMarkets = useMemo(() => {
+    if (selectedAgentId !== 'agent-1') return []
+    return getActiveMarketsForAgent('agent-1')
+  }, [selectedAgentId])
+  const teamName = (value: string) => localizeTeamName(value, i18n.resolvedLanguage)
 
   return (
     <section className="space-y-5">
-      <h1 className="ui-title text-[28px] font-semibold">{t('admin.marketsTitle')}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="ui-title text-[28px] font-semibold">{t('admin.marketsTitle')}</h1>
+        <Link to="/admin/simulate">
+          <Button type="button" variant="neutral" className="text-xs">
+            {t('menu.simulate')}
+          </Button>
+        </Link>
+      </div>
       <p className="ui-muted text-sm">{t('admin.marketsHint')}</p>
-      {notice ? <Toast variant={notice.variant}>{notice.text}</Toast> : null}
 
-      <Card className="space-y-2">
-        <p className="ui-title text-sm font-semibold">{t('admin.platformStats')}</p>
+      <Card className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="ui-title text-sm font-semibold">{t('admin.platformStats')}</p>
+        </div>
         <p className="ui-muted text-xs">
           {t('admin.totalBet')}: <span className="ui-number font-semibold text-[var(--success)]">{formatMoneyU(stats.totalBetAmount)}</span>
         </p>
@@ -105,189 +56,92 @@ export function AdminMarketsPage() {
           {t('admin.platformFeeIncome')}: <span className="ui-number font-semibold text-[var(--success)]">{formatMoneyU(stats.platformFeeIncome)}</span>
         </p>
         <p className="ui-muted text-xs">{t('admin.playerCount')}: <span className="ui-number">{stats.playerCount}</span></p>
+        <div className="mt-3">
+          <Link to="/admin/bills">
+            <Button type="button" variant="neutral" className="w-full text-sm font-semibold">
+              {t('admin.billsButton')}
+            </Button>
+          </Link>
+        </div>
       </Card>
 
       <Card className="space-y-4">
         <p className="ui-title text-sm font-semibold">{t('admin.createTemplate')}</p>
-        <select
-          className="ui-input"
-          value={preMatchInfoId}
-          onChange={(event) => setPreMatchInfoId(event.target.value)}
-        >
-          {preMatches.map((item) => (
-            <option key={item.id} value={item.id}>
-              {displayTitle(`${item.homeTeam} vs ${item.awayTeam}`)}
-            </option>
-          ))}
-        </select>
-        <div className="grid grid-cols-2 gap-2">
-          <select
-            className="ui-input"
-            value={feeSplitMode}
-            onChange={(event) => setFeeSplitMode(event.target.value as '55' | '46' | '37')}
-          >
-            <option value="55">{t('admin.feeSplitOption', { mode: '55' })}</option>
-            <option value="46">{t('admin.feeSplitOption', { mode: '46' })}</option>
-            <option value="37">{t('admin.feeSplitOption', { mode: '37' })}</option>
-          </select>
-          <select
-            className="ui-input"
-            value={riskLevel}
-            onChange={(event) => setRiskLevel(event.target.value as 'low' | 'medium' | 'high')}
-          >
-            <option value="low">{t('admin.riskLevelOption', { level: t('risk.low') })}</option>
-            <option value="medium">{t('admin.riskLevelOption', { level: t('risk.medium') })}</option>
-            <option value="high">{t('admin.riskLevelOption', { level: t('risk.high') })}</option>
-          </select>
-          <select
-            className="ui-input"
-            value={String(poolRequirement)}
-            onChange={(event) => setPoolRequirement(Number(event.target.value) as 500 | 1000 | 2000)}
-          >
-            <option value="500">{t('admin.poolOption', { value: 500 })}</option>
-            <option value="1000">{t('admin.poolOption', { value: 1000 })}</option>
-            <option value="2000">{t('admin.poolOption', { value: 2000 })}</option>
-          </select>
-          <select
-            className="ui-input"
-            value={String(feeRate)}
-            onChange={(event) => setFeeRate(Number(event.target.value) as 2 | 4 | 6)}
-          >
-            <option value="2">{t('admin.feeRateOption', { value: 2 })}</option>
-            <option value="4">{t('admin.feeRateOption', { value: 4 })}</option>
-            <option value="6">{t('admin.feeRateOption', { value: 6 })}</option>
-          </select>
-        </div>
-        <Button
-          type="button"
-          onClick={createTemplateAction}
-          variant="primary"
-          className="w-full py-3 text-base font-semibold"
-        >
-          {t('admin.createTemplateButton')}
-        </Button>
+        <p className="ui-muted text-xs">{t('admin.createTemplateDesc')}</p>
+        <Link to="/admin/templates" className="block">
+          <Button type="button" variant="primary" className="w-full py-3 text-base font-semibold">
+            {t('admin.createTemplateButton')}
+          </Button>
+        </Link>
       </Card>
 
       <Card className="space-y-3">
-        <div className="flex gap-2 rounded-xl bg-[color:var(--surface-muted)] p-1">
-          {(['created', 'activated', 'settled'] as const).map((tab) => (
-            <Button
-              key={tab}
-              type="button"
-              variant="neutral"
-              onClick={() => setTemplateTab(tab)}
-              className={`flex-1 border-[color:var(--border)] ${templateTab === tab ? 'text-white' : 'text-[#bdaee0]'}`}
-            >
-              {t(`admin.templateTabs.${tab}`)}
-            </Button>
-          ))}
+        <div className="flex items-center justify-between gap-2">
+          <p className="ui-title text-sm font-semibold">{t('admin.activeMarketsTitle')}</p>
+          <select
+            className="ui-input max-w-40"
+            value={selectedAgentId}
+            onChange={(event) => setSelectedAgentId(event.target.value)}
+          >
+            {options.map((item) => (
+              <option key={item.id} value={item.id} disabled={item.disabled}>
+                {item.label}
+              </option>
+            ))}
+          </select>
         </div>
-        <div className="space-y-2">
-          {templateTab === 'created'
-            ? createdTemplates.map((item) => {
-                const isActivated = activatedMarkets.some((record) => record.match.templateId === item.id)
-                return (
-                  <div key={item.id} className="rounded-lg border border-[color:var(--border)] p-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="ui-title text-sm">
-                          {displayTitle(`${item.matchInfo.homeTeam} vs ${item.matchInfo.awayTeam}`)}
-                        </p>
-                        <p className="ui-muted text-xs">
-                          {new Date(item.matchInfo.startTime).toLocaleString(i18n.resolvedLanguage)}
-                        </p>
+        {activeMarkets.length === 0 ? (
+          <p className="ui-muted text-sm">{t('admin.emptyActiveMarkets')}</p>
+        ) : (
+          <div className="grid gap-3">
+            {activeMarkets.map((market) => {
+              const snapshot = getMatchOperationalSnapshot(market.id)
+              return (
+                <Card key={market.id}>
+                  <Link to={`/matches/${market.id}`} className="block space-y-2">
+                    <p className="ui-muted text-xs">
+                      {new Date(market.startTime).toLocaleString(i18n.resolvedLanguage)}
+                    </p>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <TeamAvatar teamName={teamName(market.homeTeam)} logoUrl={market.homeLogoUrl} />
+                        <p className="ui-title text-sm font-semibold">{teamName(market.homeTeam)}</p>
                       </div>
-                      <Button
-                        type="button"
-                        variant="neutral"
-                        className="h-8 min-h-8 w-8 border-[color:var(--border)] p-0 text-[var(--text-muted)]"
-                        disabled={isActivated}
-                        onClick={() => removeTemplateAction(item.id)}
-                        aria-label={t('admin.removeTemplate')}
-                      >
-                        <X size={14} />
-                      </Button>
-                    </div>
-                  </div>
-                )
-              })
-            : null}
-          {templateTab === 'activated'
-            ? lockedMatches.length === 0
-              ? (
-                  <Card>
-                    <p className="ui-muted text-sm">{t('admin.empty')}</p>
-                  </Card>
-                )
-              : lockedMatches.map(({ match }) => (
-                  <Card key={match.id}>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="ui-title text-base font-medium">{displayTitle(match.title)}</p>
-                        <p className="ui-muted mt-1 text-xs">
-                          {new Date(match.startTime).toLocaleString(i18n.resolvedLanguage)}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {(['home_win', 'draw', 'away_win'] as const).map((item) => (
-                          <Button
-                            key={item}
-                            type="button"
-                            variant={selections[match.id] === item ? 'primary' : 'neutral'}
-                            onClick={() => {
-                              setSelections((prev) => {
-                                const next = { ...prev }
-                                if (next[match.id] === item) {
-                                  delete next[match.id]
-                                } else {
-                                  next[match.id] = item
-                                }
-                                return next
-                              })
-                            }}
-                          >
-                            {t(`match.selection.${item}`)}
-                          </Button>
-                        ))}
+                      <p className="ui-muted text-xs">vs</p>
+                      <div className="flex items-center gap-2">
+                        <p className="ui-title text-sm font-semibold">{teamName(market.awayTeam)}</p>
+                        <TeamAvatar teamName={teamName(market.awayTeam)} logoUrl={market.awayLogoUrl} />
                       </div>
                     </div>
-                  </Card>
-                ))
-            : null}
-          {templateTab === 'settled'
-            ? settledRecords.map((item) => (
-                <div key={item.match.id} className="rounded-lg border border-[color:var(--border)] p-2">
-                  <p className="ui-title text-sm">{displayTitle(item.match.title)}</p>
-                  <p className="ui-muted text-xs">
-                    {new Date(item.match.startTime).toLocaleString(i18n.resolvedLanguage)}
-                  </p>
-                  <p className="ui-muted text-xs">
-                    {t('admin.platformFeeIncome')}: <span className="ui-number font-semibold text-[var(--success)]">{formatMoneyU(item.platformFeeIncome)}</span>
-                  </p>
-                  <p className="ui-muted text-xs">
-                    {t('admin.settledCount')}: <span className="ui-number">{item.settledCount}</span>
-                  </p>
-                </div>
-              ))
-            : null}
-        </div>
-      </Card>
-      {templateTab === 'activated' ? (
-        <Card className="sticky bottom-20 z-20 border-[color:#8f6bff55]">
-          <div className="flex items-center justify-between gap-3">
-            <p className="ui-muted text-sm">{t('admin.selectedCount', { count: selectedCount })}</p>
-            <Button
-              type="button"
-              variant="primary"
-              disabled={selectedCount === 0}
-              onClick={confirmAction}
-            >
-              <Check size={14} className="mr-1" />
-              {t('admin.confirmSettlement')}
-            </Button>
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <Badge>{t(`match.statusLabel.${market.status}`)}</Badge>
+                      <Badge variant="primary">
+                        {t('home.lockCountdown')}: <CountdownText targetTime={market.startTime} />
+                      </Badge>
+                      <RiskBadge riskLevel={market.riskLevel} label={t(`risk.${market.riskLevel}`)} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <p className="ui-muted">
+                        {t('home.totalBet')}: <span className="ui-number font-semibold text-[var(--success)]">{formatMoneyU(market.totalBetAmount)}</span>
+                      </p>
+                      <p className="ui-muted">
+                        {t('home.profitRange')}:{' '}
+                        <span className="ui-number font-semibold text-[var(--success)]">{formatMoneyU(market.maxProfit)}</span>
+                        <span className="ui-number"> / </span>
+                        <span className="ui-number font-semibold text-[var(--danger)]">-{formatMoneyU(market.maxRisk)}</span>
+                      </p>
+                    </div>
+                    <p className="ui-muted text-xs">
+                      {t('match.fcr')}: <span className="ui-number">{(snapshot.riskControl.fcr * 100).toFixed(1)}%</span>
+                    </p>
+                  </Link>
+                </Card>
+              )
+            })}
           </div>
-        </Card>
-      ) : null}
+        )}
+      </Card>
+
     </section>
   )
 }

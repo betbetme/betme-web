@@ -1,7 +1,13 @@
 import { useEffect, useSyncExternalStore, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
-import { getBetAmountOptions, getMatchById, placeBetsAtomic } from '../services/betmeService'
+import {
+  getBetAmountOptions,
+  getAllowedBetAmountsForMatch,
+  getMatchById,
+  getMarketRiskControlSnapshot,
+  placeBetsAtomic,
+} from '../services/betmeService'
 import { getCurrentUser } from '../services/authService'
 import {
   areBetSlipItemsReady,
@@ -13,6 +19,7 @@ import {
   setBetSlipAmount,
   subscribeBetSlip,
 } from '../services/betSlipStore'
+import { getStoreVersion, subscribeStore } from '../services/dataStore'
 import { Card } from '../shared/ui/Card'
 import { Button } from '../shared/ui/Button'
 import { Toast } from '../shared/ui/Toast'
@@ -22,18 +29,36 @@ import { localizeMatchTitle } from '../shared/i18n/teamNames'
 export function PlayerBetsPage() {
   const { t, i18n } = useTranslation()
   useSyncExternalStore(subscribeBetSlip, getBetSlipVersion)
+  useSyncExternalStore(subscribeStore, getStoreVersion)
   const currentUser = getCurrentUser()
   const [notice, setNotice] = useState<{ text: string; variant: 'success' | 'error' } | null>(null)
+  const allAmountOptions = getBetAmountOptions()
 
   const slips = getBetSlipItems()
-  const betAmounts = getBetAmountOptions()
   const totalAmount = getBetSlipTotalAmount()
   const ready = areBetSlipItemsReady()
-  const invalidStatusExists = slips.some((item) => getMatchById(item.matchId)?.status !== 'open')
+  const marketSnapshots = slips.map((item) => {
+    const match = getMatchById(item.matchId)
+    if (!match) return { match: null, allowedAmounts: [] as number[], haltedByRisk: false }
+    const risk = getMarketRiskControlSnapshot(item.matchId)
+    return {
+      match,
+      allowedAmounts: getAllowedBetAmountsForMatch(item.matchId),
+      haltedByRisk: risk.haltedByRisk,
+    }
+  })
+  const invalidStatusExists = marketSnapshots.some((item) => item.match?.status !== 'open')
+  const riskHaltedExists = marketSnapshots.some((item) => item.haltedByRisk)
+  const amountOutOfGateExists = slips.some((item, index) => {
+    if (!item.amount) return false
+    return !marketSnapshots[index].allowedAmounts.includes(item.amount)
+  })
   const disabled =
     slips.length === 0 ||
     !ready ||
     invalidStatusExists ||
+    riskHaltedExists ||
+    amountOutOfGateExists ||
     totalAmount > currentUser.balance ||
     currentUser.role !== 'player'
   const disabledReason =
@@ -43,6 +68,10 @@ export function PlayerBetsPage() {
         ? t('playerBets.reason.amountMissing')
         : invalidStatusExists
           ? t('playerBets.reason.marketNotOpen')
+          : riskHaltedExists
+            ? t('playerBets.reason.riskHalted')
+            : amountOutOfGateExists
+              ? t('playerBets.reason.amountOutOfGate')
           : totalAmount > currentUser.balance
             ? t('playerBets.reason.insufficientBalance')
             : currentUser.role !== 'player'
@@ -53,7 +82,7 @@ export function PlayerBetsPage() {
     if (!notice) {
       return
     }
-    const timer = window.setTimeout(() => setNotice(null), 2200)
+    const timer = window.setTimeout(() => setNotice(null), 1000)
     return () => window.clearTimeout(timer)
   }, [notice])
 
@@ -89,9 +118,14 @@ export function PlayerBetsPage() {
               return null
             }
             const isOpen = match.status === 'open'
+            const allowedAmounts = getAllowedBetAmountsForMatch(item.matchId)
+            const risk = getMarketRiskControlSnapshot(item.matchId)
+            const displayAmounts = Array.from(
+              new Set(item.amount ? [...allAmountOptions, item.amount] : allAmountOptions),
+            ).sort((a, b) => a - b)
 
             return (
-              <Card key={item.matchId} className="space-y-3">
+              <Card key={item.id} className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="ui-title text-sm font-semibold">
@@ -122,17 +156,19 @@ export function PlayerBetsPage() {
                           )
                         : '-'}</span>
                     </p>
-                    {!isOpen ? (
-                      <p className="mt-1 text-xs text-[var(--danger)]">
-                        {t('playerBets.lockedWarning')}
-                      </p>
-                    ) : null}
+                    <p className="mt-1 min-h-4 text-xs text-[var(--danger)]">
+                      {!isOpen
+                        ? t('playerBets.lockedWarning')
+                        : risk.haltedByRisk
+                          ? t('playerBets.riskHaltWarning')
+                          : ''}
+                    </p>
                   </div>
                   <Button
                     type="button"
                     variant="neutral"
                     className="h-8 min-h-8 w-8 border-[color:var(--border)] p-0 text-[var(--text-muted)]"
-                    onClick={() => removeBetSlipItem(item.matchId)}
+                    onClick={() => removeBetSlipItem(item.id)}
                     aria-label={t('playerBets.remove')}
                   >
                     <X size={14} />
@@ -140,13 +176,13 @@ export function PlayerBetsPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {betAmounts.map((amount) => (
+                  {displayAmounts.map((amount) => (
                     <Button
                       key={amount}
                       type="button"
-                      variant={item.amount === amount ? 'primary' : 'neutral'}
-                      onClick={() => setBetSlipAmount(item.matchId, amount)}
-                      disabled={!isOpen}
+                      variant={item.amount === amount ? 'selected' : 'neutral'}
+                      onClick={() => setBetSlipAmount(item.id, amount)}
+                      disabled={!isOpen || !allowedAmounts.includes(amount)}
                       className="min-w-20"
                     >
                       {amount}U

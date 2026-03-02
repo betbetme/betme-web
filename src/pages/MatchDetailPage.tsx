@@ -3,14 +3,11 @@ import { Link, useOutletContext, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   cancelMatch,
-  changeMatchStatusByAdmin,
   getMatchById,
   getMatchOperationalSnapshot,
   updateMarketStatus,
-  resolveMatchByAdmin,
 } from '../services/betmeService'
 import { getStoreVersion, subscribeStore } from '../services/dataStore'
-import type { MatchResult } from '../types/domain'
 import type { LayoutContextValue } from '../shared/layouts/layoutContext'
 import { Card } from '../shared/ui/Card'
 import { Badge } from '../shared/ui/Badge'
@@ -47,58 +44,25 @@ export function MatchDetailPage() {
     currentUser.role === 'player' &&
     currentUser.parentId === match.agentId &&
     match.status === 'open'
-  const canCancel =
-    currentUser.role === 'admin' ||
-    (currentUser.role === 'agent' && currentUser.id === match.agentId)
   const isMatchOwnerAgent =
     currentUser.role === 'agent' && currentUser.id === match.agentId
   const teamName = (value: string) => localizeTeamName(value, i18n.resolvedLanguage)
   const moneyToneClass = (value: number) =>
     value < 0 ? 'text-[var(--danger)]' : 'text-[var(--success)]'
+  const gateVariant = {
+    normal: 'success',
+    skewed: 'primary',
+    danger: 'danger',
+    extreme: 'danger',
+  } as const
 
   useEffect(() => {
     if (!notice) {
       return
     }
-    const timer = window.setTimeout(() => setNotice(null), 2200)
+    const timer = window.setTimeout(() => setNotice(null), 1000)
     return () => window.clearTimeout(timer)
   }, [notice])
-
-  const resolveAction = (result: MatchResult) => {
-    try {
-      resolveMatchByAdmin(currentUser.id, match.id, result)
-      setNotice({
-        text: t('message.resolved', { result: t(`match.selection.${result}`) }),
-        variant: 'success',
-      })
-    } catch (error) {
-      setNotice({
-        text: error instanceof Error ? error.message : t('message.resolveFailed'),
-        variant: 'error',
-      })
-    }
-  }
-
-  const adminTransitionAction = () => {
-    try {
-      if (match.status === 'draft') {
-        changeMatchStatusByAdmin(currentUser.id, match.id, 'open')
-      } else if (match.status === 'open') {
-        changeMatchStatusByAdmin(currentUser.id, match.id, 'locked')
-      }
-      setNotice({
-        text: t('message.statusMoved', {
-          status: t(`match.statusLabel.${match.status}`),
-        }),
-        variant: 'success',
-      })
-    } catch (error) {
-      setNotice({
-        text: error instanceof Error ? error.message : t('message.statusMoveFailed'),
-        variant: 'error',
-      })
-    }
-  }
 
   const cancelAction = () => {
     try {
@@ -201,6 +165,42 @@ export function MatchDetailPage() {
         </div>
       </section>
 
+      <section className="mt-4 space-y-2 rounded-xl border border-[color:var(--border)] p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="ui-title text-sm font-semibold">{t('match.riskMonitor')}</h2>
+          <Badge variant={gateVariant[snapshot.riskControl.gate]}>
+            {t(`match.gateLabel.${snapshot.riskControl.gate}`)}
+          </Badge>
+        </div>
+        <p className="ui-muted text-xs">
+          {t('match.fcr')}: <span className="ui-number">{(snapshot.riskControl.fcr * 100).toFixed(2)}%</span>
+        </p>
+        <p className="ui-muted text-xs">
+          {t('match.topSideBetRatio')}: <span className="ui-number">{(snapshot.riskControl.topSideBetRatio * 100).toFixed(2)}%</span>
+        </p>
+        <p className="ui-muted text-xs">
+          {t('match.exposureRatio')}: <span className="ui-number font-semibold text-[var(--danger)]">{(snapshot.riskControl.exposureRatio * 100).toFixed(2)}%</span>
+        </p>
+        <p className="ui-muted text-xs">
+          {t('match.exposureAmount')}: <span className="ui-number font-semibold text-[var(--danger)]">{formatMoneyU(snapshot.riskControl.exposureAmount)}</span>
+        </p>
+        <p className="ui-muted text-xs">
+          {t('match.releasedStage')}: <span className="ui-number">{snapshot.riskControl.releasedStage}</span>
+        </p>
+        <p className="ui-muted text-xs">
+          {t('match.rFactor')}: <span className="ui-number">{snapshot.riskControl.rFactor.toFixed(2)}</span>
+        </p>
+        <p
+          className={`min-h-4 text-xs ${
+            snapshot.riskControl.haltedByRisk ? 'text-[var(--danger)]' : 'ui-muted'
+          }`}
+        >
+          {snapshot.riskControl.haltedByRisk
+            ? t('match.haltedByRisk')
+            : t('match.normalOperating')}
+        </p>
+      </section>
+
       <section className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-[color:var(--border)] p-4">
         <div>
           <p className="ui-muted text-xs">{t('match.totalAmount')}</p>
@@ -280,45 +280,7 @@ export function MatchDetailPage() {
         </section>
       ) : null}
 
-      {currentUser.role === 'admin' ? (
-        <section className="mt-6 space-y-3 rounded-xl border border-[color:var(--border)] p-4">
-          <h2 className="ui-title text-sm font-semibold">{t('match.adminControls')}</h2>
-          <Button
-            type="button"
-            onClick={adminTransitionAction}
-            disabled={!['draft', 'open'].includes(match.status)}
-            variant="neutral"
-          >
-            {t('match.moveToNextStage')}
-          </Button>
-          <div className="flex flex-wrap gap-2">
-            {(['home_win', 'draw', 'away_win'] as const).map((result) => (
-              <Button
-                key={result}
-                type="button"
-                onClick={() => resolveAction(result)}
-                disabled={match.status !== 'locked'}
-                variant="primary"
-              >
-                {t('match.resolveAs', { result: t(`match.selection.${result}`) })}
-              </Button>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {canCancel && !isMatchOwnerAgent ? (
-        <section className="mt-4">
-          <Button
-            type="button"
-            onClick={cancelAction}
-            disabled={!['draft', 'open', 'locked'].includes(match.status)}
-            variant="danger"
-          >
-            {t('match.cancelMatch')}
-          </Button>
-        </section>
-      ) : null}
+      
     </Card>
   )
 }

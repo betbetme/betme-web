@@ -1,7 +1,7 @@
 import { getDb } from './dataStore'
 import type { User } from '../types/domain'
 
-let currentUserId = 'agent-1'
+let currentUserId = 'admin-1'
 const listeners = new Set<() => void>()
 let authVersion = 0
 
@@ -25,7 +25,11 @@ export function setCurrentUser(userId: string) {
 }
 
 export function setCurrentUserByRole(role: User['role']) {
-  const user = listDemoUsers().find((item) => item.role === role)
+  const users = listDemoUsers().filter((item) => item.role === role)
+  const user =
+    role === 'player'
+      ? users.find((item) => item.parentId !== null) ?? users[0]
+      : users[0]
   if (!user) {
     throw new Error(`No active user found for role: ${role}`)
   }

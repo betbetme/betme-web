@@ -6,6 +6,9 @@ import { HomePage } from '../pages/HomePage'
 import { MatchDetailPage } from '../pages/MatchDetailPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { AdminMarketsPage } from '../pages/AdminMarketsPage'
+import { AdminSimulatePage } from '../pages/AdminSimulatePage'
+import { AdminBillsPage } from '../pages/AdminBillsPage'
+import { AdminTemplatesPage } from '../pages/AdminTemplatesPage'
 import { PlayerBetsPage } from '../pages/PlayerBetsPage'
 import { PlayerMinePage } from '../pages/PlayerMinePage'
 import { AgentCreatePage } from '../pages/AgentCreatePage'
@@ -93,6 +96,30 @@ export function AppRouter() {
             element={
               <RequireRole role="admin">
                 <AdminMarketsPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/simulate"
+            element={
+              <RequireRole role="admin">
+                <AdminSimulatePage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/bills"
+            element={
+              <RequireRole role="admin">
+                <AdminBillsPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/templates"
+            element={
+              <RequireRole role="admin">
+                <AdminTemplatesPage />
               </RequireRole>
             }
           />

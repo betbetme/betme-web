@@ -69,7 +69,13 @@ export interface Match {
     draw: number
     awayWin: number
   }
+  baseOdds: {
+    homeWin: number
+    draw: number
+    awayWin: number
+  }
   feeRate: number
+  riskHalted: boolean
   status: MatchStatus
   result: MatchResult | null
   createdAt: string

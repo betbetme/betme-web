@@ -125,4 +125,13 @@ body {
     background: color-mix(in srgb, var(--danger) 70%, #260822);
     border: 1px solid color-mix(in srgb, var(--danger) 50%, white);
   }
+
+  .ui-btn-selected {
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+    min-height: 44px;
+    color: var(--text);
+    background: color-mix(in srgb, var(--primary) 16%, var(--surface-muted));
+    border: 1px solid color-mix(in srgb, var(--primary) 55%, white);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 30%, transparent);
+  }
 }

@@ -21,12 +21,20 @@ export function AgentCreateMatchPage() {
   const navigate = useNavigate()
   const currentUser = getCurrentUser()
   const templates = getPlatformMarkets().filter((item) => item.status === 'template')
+  const nowMs = Date.now()
+  const expiredTemplateIds = new Set(
+    templates
+      .filter((item) => new Date(item.matchInfo.startTime).getTime() <= nowMs)
+      .map((item) => item.id),
+  )
   const activatedTemplateIds = new Set(
     getVisibleMatches(currentUser.id)
       .filter((item) => ['draft', 'open', 'locked'].includes(item.status))
       .map((item) => item.templateId),
   )
-  const selectableTemplates = templates.filter((item) => !activatedTemplateIds.has(item.id))
+  const selectableTemplates = templates.filter(
+    (item) => !activatedTemplateIds.has(item.id) && !expiredTemplateIds.has(item.id),
+  )
   const [notice, setNotice] = useState<{ text: string; variant: 'success' | 'error' } | null>(null)
   const [templateId, setTemplateId] = useState(selectableTemplates[0]?.id ?? '')
 
@@ -34,14 +42,16 @@ export function AgentCreateMatchPage() {
     () => templates.find((item) => item.id === templateId),
     [templates, templateId],
   )
-  const templateBlocked = selectedTemplate ? activatedTemplateIds.has(selectedTemplate.id) : false
+  const templateBlocked = selectedTemplate
+    ? activatedTemplateIds.has(selectedTemplate.id) || expiredTemplateIds.has(selectedTemplate.id)
+    : false
   const teamName = (value: string) => localizeTeamName(value, i18n.resolvedLanguage)
 
   useEffect(() => {
     if (!notice) {
       return
     }
-    const timer = window.setTimeout(() => setNotice(null), 2200)
+    const timer = window.setTimeout(() => setNotice(null), 1000)
     return () => window.clearTimeout(timer)
   }, [notice])
 
@@ -57,7 +67,12 @@ export function AgentCreateMatchPage() {
       return
     }
     if (templateBlocked) {
-      setNotice({ text: t('agentCreateForm.alreadyActivated'), variant: 'error' })
+      setNotice({
+        text: selectedTemplate && expiredTemplateIds.has(selectedTemplate.id)
+          ? t('agentCreateForm.expiredTemplateWarning')
+          : t('agentCreateForm.alreadyActivated'),
+        variant: 'error',
+      })
       return
     }
     try {
@@ -81,14 +96,22 @@ export function AgentCreateMatchPage() {
           <span className="ui-muted text-xs">{t('agentCreateForm.match')}</span>
           <SelectInput value={templateId} onChange={(event) => setTemplateId(event.target.value)}>
             {templates.map((item) => (
-              <option key={item.id} value={item.id} disabled={activatedTemplateIds.has(item.id)}>
+              <option
+                key={item.id}
+                value={item.id}
+                disabled={activatedTemplateIds.has(item.id) || expiredTemplateIds.has(item.id)}
+              >
                 {teamName(item.matchInfo.homeTeam)} vs {teamName(item.matchInfo.awayTeam)}
                 {activatedTemplateIds.has(item.id) ? ` ${t('agentCreateForm.activatedLabel')}` : ''}
+                {expiredTemplateIds.has(item.id) ? ` ${t('agentCreateForm.expiredLabel')}` : ''}
               </option>
             ))}
           </SelectInput>
           {selectableTemplates.length === 0 ? (
             <p className="mt-1 text-xs text-[var(--danger)]">{t('agentCreateForm.noTemplateAvailable')}</p>
+          ) : null}
+          {selectedTemplate && expiredTemplateIds.has(selectedTemplate.id) ? (
+            <p className="mt-1 text-xs text-[var(--danger)]">{t('agentCreateForm.expiredTemplateWarning')}</p>
           ) : null}
         </label>
       </Card>

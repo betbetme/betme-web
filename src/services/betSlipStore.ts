@@ -3,6 +3,7 @@ import type { BetSelection } from '../types/domain'
 type Listener = () => void
 
 export interface BetSlipItem {
+  id: string
   marketId: string
   matchId: string
   selection: BetSelection
@@ -12,6 +13,12 @@ export interface BetSlipItem {
 const items: BetSlipItem[] = []
 const listeners = new Set<Listener>()
 let betSlipVersion = 0
+let slipCounter = 0
+
+function generateSlipId() {
+  slipCounter += 1
+  return `slip-${Date.now()}-${slipCounter}`
+}
 
 function emitChange() {
   betSlipVersion += 1
@@ -39,33 +46,24 @@ export function areBetSlipItemsReady(): boolean {
   return items.length > 0 && items.every((item) => typeof item.amount === 'number')
 }
 
-export function upsertBetSlipSelection(input: Omit<BetSlipItem, 'amount'>) {
-  const index = items.findIndex((item) => item.matchId === input.matchId)
-  if (index >= 0) {
-    if (items[index].selection === input.selection) {
-      items.splice(index, 1)
-      emitChange()
-      return
-    }
-    items[index] = { ...items[index], selection: input.selection, amount: undefined }
-  } else {
-    items.push({ ...input, amount: undefined })
-  }
+export function upsertBetSlipSelection(input: Omit<BetSlipItem, 'id' | 'amount'>) {
+  const next = items.filter((item) => item.matchId !== input.matchId)
+  next.unshift({ ...input, id: generateSlipId(), amount: undefined })
+  items.splice(0, items.length, ...next)
   emitChange()
 }
 
-export function setBetSlipAmount(matchId: string, amount: number) {
-  const index = items.findIndex((item) => item.matchId === matchId)
+export function setBetSlipAmount(slipId: string, amount: number) {
+  const index = items.findIndex((item) => item.id === slipId)
   if (index < 0) {
     return
   }
-  const nextAmount = items[index].amount === amount ? undefined : amount
-  items[index] = { ...items[index], amount: nextAmount }
+  items[index] = { ...items[index], amount }
   emitChange()
 }
 
-export function removeBetSlipItem(matchId: string) {
-  const next = items.filter((item) => item.matchId !== matchId)
+export function removeBetSlipItem(slipId: string) {
+  const next = items.filter((item) => item.id !== slipId)
   if (next.length === items.length) {
     return
   }

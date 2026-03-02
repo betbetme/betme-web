@@ -17,7 +17,7 @@ export function Toast({ className, variant = 'info', ...props }: ToastProps) {
   return (
     <div
       className={cn(
-        'fixed right-4 top-20 z-50 max-w-sm rounded-lg border px-3 py-2 text-sm shadow-lg backdrop-blur',
+        'pointer-events-none fixed left-1/2 top-24 z-50 w-[min(92vw,24rem)] -translate-x-1/2 rounded-lg border px-3 py-2 text-sm shadow-lg backdrop-blur',
         variantClass,
         className,
       )}

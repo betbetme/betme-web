@@ -11,7 +11,11 @@ import {
 import { getStoreVersion, subscribeStore } from '../../services/dataStore'
 import { Badge } from '../ui/Badge'
 import { getBetSlipVersion, hasBetSlipItems, subscribeBetSlip } from '../../services/betSlipStore'
-import { getPlayerBetRecords } from '../../services/betmeService'
+import {
+  getPlayerNoticeVersion,
+  hasUnreadPendingBets,
+  subscribePlayerNotice,
+} from '../../services/playerNoticeStore'
 import { formatMoneyU } from '../formatters/money'
 
 export function AppLayout() {
@@ -20,6 +24,7 @@ export function AppLayout() {
   useSyncExternalStore(subscribeStore, getStoreVersion)
   useSyncExternalStore(subscribeCurrentUser, getAuthVersion)
   useSyncExternalStore(subscribeBetSlip, getBetSlipVersion)
+  useSyncExternalStore(subscribePlayerNotice, getPlayerNoticeVersion)
   const currentUser = getCurrentUser()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuWrapRef = useRef<HTMLDivElement | null>(null)
@@ -32,24 +37,10 @@ export function AppLayout() {
     return `${wallet.slice(0, 4)}...${wallet.slice(-3)}`
   }, [currentUser.id, currentUser.walletAddress])
 
-  const switchRole = (role: 'player' | 'agent' | 'admin') => {
-    setCurrentUserByRole(role)
-    setMenuOpen(false)
-    if (role === 'admin') {
-      navigate('/admin/markets')
-      return
-    }
-    if (role === 'player') {
-      navigate('/matches')
-      return
-    }
-    navigate('/matches')
-  }
-
   const languageToggleLabel = i18n.resolvedLanguage === 'zh-TW' ? 'English' : '繁體中文'
-  const hasPendingOrders =
-    currentUser.role === 'player' &&
-    getPlayerBetRecords(currentUser.id).some((record) => record.status === 'pending')
+  const hasPendingOrders = currentUser.role === 'player' && hasUnreadPendingBets(currentUser.id)
+  const currentIdentity: 'player' | 'agent' | 'platform' =
+    currentUser.role === 'admin' ? 'platform' : currentUser.role
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -62,19 +53,22 @@ export function AppLayout() {
     return () => document.removeEventListener('mousedown', handlePointerDown)
   }, [menuOpen])
 
-  const renderModeItem = (role: 'player' | 'agent' | 'admin') => {
-    const isCurrent = currentUser.role === role
-    return (
-      <button
-        type="button"
-        onClick={() => switchRole(role)}
-        disabled={isCurrent}
-        className={`block w-full rounded-md px-3 py-2 text-left text-sm ${isCurrent ? 'text-[#7f73a7]' : 'text-[var(--text)] hover:bg-[color:var(--surface-muted)]'}`}
-      >
-        {t(`menu.${role}`)}
-        {isCurrent ? t('menu.currentSuffix') : ''}
-      </button>
-    )
+  const switchIdentity = (target: 'player' | 'agent' | 'platform') => {
+    if (target === 'platform') {
+      setCurrentUserByRole('admin')
+      navigate('/admin/markets')
+      setMenuOpen(false)
+      return
+    }
+    if (target === 'agent') {
+      setCurrentUserByRole('agent')
+      navigate('/matches')
+      setMenuOpen(false)
+      return
+    }
+    setCurrentUserByRole('player')
+    navigate('/matches')
+    setMenuOpen(false)
   }
 
   return (
@@ -90,12 +84,14 @@ export function AppLayout() {
               />
             </Link>
           </div>
-          <Badge
-            variant="primary"
-            className="absolute left-1/2 hidden -translate-x-1/2 px-4 py-2 text-sm sm:inline-flex"
-          >
-            {walletLabel} | {t(`role.${currentUser.role}`)} | {formatMoneyU(currentUser.balance)}
-          </Badge>
+          {currentIdentity === 'platform' ? null : (
+            <Badge
+              variant="primary"
+              className="absolute left-1/2 hidden -translate-x-1/2 px-4 py-2 text-sm sm:inline-flex"
+            >
+              {`${walletLabel} | ${t(`role.${currentUser.role}`)} | ${formatMoneyU(currentUser.balance)}`}
+            </Badge>
+          )}
           <div className="flex items-center gap-2">
             <div className="relative" ref={menuWrapRef}>
               <button
@@ -108,15 +104,24 @@ export function AppLayout() {
               </button>
               {menuOpen ? (
                 <div className="absolute right-0 mt-2 w-44 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-1 shadow-lg">
-                  {renderModeItem('player')}
-                  {renderModeItem('agent')}
-                  {renderModeItem('admin')}
+                  {(['platform', 'agent', 'player'] as const).map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => switchIdentity(item)}
+                      className="block w-full rounded-md px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[color:var(--surface-muted)]"
+                    >
+                      {t(`menu.${item}`)}
+                      {item === currentIdentity ? t('menu.currentSuffix') : ''}
+                    </button>
+                  ))}
+                  <div className="my-1 h-px bg-[color:var(--border)]" />
                   <button
                     type="button"
                     disabled
                     className="block w-full rounded-md px-3 py-2 text-left text-sm text-[#7f73a7]"
                   >
-                    {t('menu.orders')}
+                    {t('menu.growthPlan')}
                   </button>
                   <button
                     type="button"
@@ -147,7 +152,7 @@ export function AppLayout() {
       </main>
 
       {currentUser.role === 'player' ? (
-        <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-[color:var(--border)] bg-[color:var(--surface)]">
+        <nav className="pointer-events-auto fixed bottom-0 left-0 right-0 z-[60] border-t border-[color:var(--border)] bg-[color:var(--surface)]">
           <div className="mx-auto flex max-w-6xl items-center justify-around px-4 py-3">
             <NavLink
               to="/matches"

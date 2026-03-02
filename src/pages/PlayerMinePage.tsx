@@ -1,9 +1,10 @@
-import { useMemo, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CheckCircle2, XCircle } from 'lucide-react'
 import { getCurrentUser } from '../services/authService'
 import { getMatchById, getPlayerBetRecords } from '../services/betmeService'
 import { getStoreVersion, subscribeStore } from '../services/dataStore'
+import { markPendingBetsAsSeen } from '../services/playerNoticeStore'
 import { Card } from '../shared/ui/Card'
 import { Badge } from '../shared/ui/Badge'
 import { formatMoneyU } from '../shared/formatters/money'
@@ -14,6 +15,19 @@ export function PlayerMinePage() {
   useSyncExternalStore(subscribeStore, getStoreVersion)
   const currentUser = getCurrentUser()
   const records = useMemo(() => getPlayerBetRecords(currentUser.id), [currentUser.id])
+  const pendingSignature = useMemo(
+    () =>
+      records
+        .filter((item) => item.status === 'pending')
+        .map((item) => item.id)
+        .sort()
+        .join('|'),
+    [records],
+  )
+
+  useEffect(() => {
+    markPendingBetsAsSeen(currentUser.id)
+  }, [currentUser.id, pendingSignature])
 
   const pending = records.filter((item) => item.status === 'pending')
   const settled = records.filter((item) => item.status !== 'pending')
